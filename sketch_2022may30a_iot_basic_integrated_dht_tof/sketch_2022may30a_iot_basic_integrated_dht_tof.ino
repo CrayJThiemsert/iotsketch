@@ -32,10 +32,13 @@
 #include <WiFiUdp.h>
 #include <TimeLib.h>
 
+<<<<<<< HEAD
 // Water Level Sensor Libraries
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 
+=======
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
 // ======================================================================
 // Default "theNode" AP Mode SSID and password, use to transfer data between "the App" and "the Node".
 #define THE_NODE_SSID "theNode_DHT"
@@ -108,6 +111,7 @@ String DEFAULT_FBDB_USER = "cray";
 // ======================================================================
 // Variables
 // ======================================================================
+<<<<<<< HEAD
 // =======================
 // For Water Leveling aka. TOF10120
 // =======================
@@ -125,6 +129,8 @@ int relay = 13;
 int relay_flag = 0; 
 // =======================
 
+=======
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
 int i = 0;
 int statusCode;
 const char* ssid = "text";
@@ -174,7 +180,10 @@ void processNormalTasksEngine(unsigned long currentMillis);
 bool loadInternalConfig(void);
 bool processReadSensor(void);
 bool processNotification(void);
+<<<<<<< HEAD
 bool processWaterLeveling(void);
+=======
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
 bool processSendNotificationEmail(String notifyType);
 float readVoltage(void); // read internal VCC
 String getDeviceReadingIntervalFromCloudDatabase(void);
@@ -217,9 +226,13 @@ ADC_MODE(ADC_VCC);  // allows you to monitor the internal VCC level; it varies w
 EMailSender emailSend("cray.j.tester@gmail.com", "ntptwuzbtnrjneuo");
 
 void setup() {
+<<<<<<< HEAD
   // Water Leveling
   Wire.begin(); 
   
+=======
+
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
   Serial.begin(115200); //Initialising if(DEBUG)Serial Monitor
   // Wait for serial to initialize.
   while(!Serial) { }
@@ -310,6 +323,7 @@ void setup() {
     // run read sensor once when start process
     if(!processReadSensor()) {
       Serial.println("processReadSensor falied!!");
+<<<<<<< HEAD
     } else {
       Serial.println("processReadSensor done!!");
     }
@@ -323,6 +337,13 @@ void setup() {
     Serial.println("");
     Serial.println("**** end called processWaterLeveling.");
     Serial.println("");
+=======
+    }
+
+    
+
+
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
     
 
 //    Serial.println("=>Call Device's notifyEmail information from cloud database: getDeviceValueFromCloudDatabase()");
@@ -423,8 +444,11 @@ void processNormalTasksEngine(unsigned long currentMillis) {
         Serial.println(readingInterval);
   
         processReadSensor();
+<<<<<<< HEAD
 
         processWaterLeveling();
+=======
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
   
       }
   }
@@ -467,7 +491,11 @@ bool loadInternalConfig(void) {
   delay(100);
   //---------------------------------------- Read eeprom for ssid and pass
   Serial.println(".");
+<<<<<<< HEAD
   Serial.println("sketch_2022may30a_iot_basic_integrated_dht_tof");
+=======
+  Serial.println("sketch_2022mar08a_iot_interval_fixed_date_1970_bug_optimize_loop");
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
   Serial.println("Reading EEPROM ssid");
 
   String esid = "";
@@ -728,7 +756,10 @@ bool processNotification(void) {
     result = processSendNotificationEmail("humidity");
   } else {
     Serial.println("Humidity is under monitoring range. No need to send notification.");
+<<<<<<< HEAD
     result = true;
+=======
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
   }
 
   if(gTemperature < gNotifyTempLower || gTemperature > gNotifyTempHigher) {
@@ -737,12 +768,16 @@ bool processNotification(void) {
     result = processSendNotificationEmail("temperature");
   } else {
     Serial.println("Temperature is under monitoring range. No need to send notification.");
+<<<<<<< HEAD
     result = true;
+=======
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
   }
 
   return result;
 }
 
+<<<<<<< HEAD
 void SensorRead(unsigned char addr,unsigned char* datbuf,unsigned char cnt) {
   unsigned short result=0;
   // step 1: instruct sensor to read echoes
@@ -803,6 +838,8 @@ bool processWaterLeveling(void) {
   return result;
 }
 
+=======
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
 bool processReadSensor(void) {
   bool result = false;
 
@@ -859,6 +896,10 @@ bool processReadSensor(void) {
     Serial.println("=>Call Notification information from cloud database: getNotificationInfoFromCloudDatabase()");
     getNotificationInfoFromCloudDatabase();
     
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
     if(saveDataToCloudDatabase()) {
       Serial.println("Successfully Update data to the Cloud!!!");
       Serial.println("");
@@ -869,7 +910,10 @@ bool processReadSensor(void) {
       Serial.println("Update data to the Cloud Failured!!!");
     }  
 
+<<<<<<< HEAD
     result = true;
+=======
+>>>>>>> 0822335919742dd3c0d5ada8b8f1161f7354cd96
     
   } else {
     Serial.println("Read sensor Failured!!!");
