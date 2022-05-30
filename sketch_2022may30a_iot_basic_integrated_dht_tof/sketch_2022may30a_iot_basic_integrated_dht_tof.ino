@@ -32,6 +32,10 @@
 #include <WiFiUdp.h>
 #include <TimeLib.h>
 
+// Water Level Sensor Libraries
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+
 // ======================================================================
 // Default "theNode" AP Mode SSID and password, use to transfer data between "the App" and "the Node".
 #define THE_NODE_SSID "theNode_DHT"
@@ -104,6 +108,23 @@ String DEFAULT_FBDB_USER = "cray";
 // ======================================================================
 // Variables
 // ======================================================================
+// =======================
+// For Water Leveling aka. TOF10120
+// =======================
+unsigned char ok_flag;
+unsigned char fail_flag;
+ 
+unsigned short lenth_val = 0;
+unsigned char i2c_rx_buf[16];
+unsigned char dirsend_flag=0;
+ 
+int x_mm; // distance in millimeters
+float y_inches; // distance in inches
+
+int relay = 13; 
+int relay_flag = 0; 
+// =======================
+
 int i = 0;
 int statusCode;
 const char* ssid = "text";
@@ -153,6 +174,7 @@ void processNormalTasksEngine(unsigned long currentMillis);
 bool loadInternalConfig(void);
 bool processReadSensor(void);
 bool processNotification(void);
+bool processWaterLeveling(void);
 bool processSendNotificationEmail(String notifyType);
 float readVoltage(void); // read internal VCC
 String getDeviceReadingIntervalFromCloudDatabase(void);
@@ -195,7 +217,9 @@ ADC_MODE(ADC_VCC);  // allows you to monitor the internal VCC level; it varies w
 EMailSender emailSend("cray.j.tester@gmail.com", "ntptwuzbtnrjneuo");
 
 void setup() {
-
+  // Water Leveling
+  Wire.begin(); 
+  
   Serial.begin(115200); //Initialising if(DEBUG)Serial Monitor
   // Wait for serial to initialize.
   while(!Serial) { }
@@ -286,11 +310,19 @@ void setup() {
     // run read sensor once when start process
     if(!processReadSensor()) {
       Serial.println("processReadSensor falied!!");
+    } else {
+      Serial.println("processReadSensor done!!");
     }
 
-    
+    if(!processWaterLeveling()) {
+      Serial.println("processWaterLeveling falied!!");
+    } else {
+      Serial.println("processWaterLeveling done!!");
+    }
 
-
+    Serial.println("");
+    Serial.println("**** end called processWaterLeveling.");
+    Serial.println("");
     
 
 //    Serial.println("=>Call Device's notifyEmail information from cloud database: getDeviceValueFromCloudDatabase()");
@@ -391,6 +423,8 @@ void processNormalTasksEngine(unsigned long currentMillis) {
         Serial.println(readingInterval);
   
         processReadSensor();
+
+        processWaterLeveling();
   
       }
   }
@@ -433,7 +467,7 @@ bool loadInternalConfig(void) {
   delay(100);
   //---------------------------------------- Read eeprom for ssid and pass
   Serial.println(".");
-  Serial.println("sketch_2022mar08a_iot_interval_fixed_date_1970_bug_optimize_loop");
+  Serial.println("sketch_2022may30a_iot_basic_integrated_dht_tof");
   Serial.println("Reading EEPROM ssid");
 
   String esid = "";
@@ -694,6 +728,7 @@ bool processNotification(void) {
     result = processSendNotificationEmail("humidity");
   } else {
     Serial.println("Humidity is under monitoring range. No need to send notification.");
+    result = true;
   }
 
   if(gTemperature < gNotifyTempLower || gTemperature > gNotifyTempHigher) {
@@ -702,8 +737,69 @@ bool processNotification(void) {
     result = processSendNotificationEmail("temperature");
   } else {
     Serial.println("Temperature is under monitoring range. No need to send notification.");
+    result = true;
   }
 
+  return result;
+}
+
+void SensorRead(unsigned char addr,unsigned char* datbuf,unsigned char cnt) {
+  unsigned short result=0;
+  // step 1: instruct sensor to read echoes
+  Wire.beginTransmission(82); // transmit to device #82 (0x52), you can also find this address using the i2c_scanner code, which is available on electroniclinic.com
+  // the address specified in the datasheet is 164 (0xa4)
+  // but i2c adressing uses the high 7 bits so it's 82
+  Wire.write(byte(addr));      // sets distance data address (addr)
+  Wire.endTransmission();      // stop transmitting
+  // step 2: wait for readings to happen
+  delay(1);                   // datasheet suggests at least 30uS
+  // step 3: request reading from sensor
+  Wire.requestFrom(82, cnt);    // request cnt bytes from slave device #82 (0x52)
+  // step 5: receive reading from sensor
+  if (cnt <= Wire.available()) { // if two bytes were received
+    *datbuf++ = Wire.read();  // receive high byte (overwrites previous reading)
+    *datbuf++ = Wire.read(); // receive low byte as lower 8 bits
+  }
+}
+ 
+int ReadDistance() {
+    SensorRead(0x00,i2c_rx_buf,2);
+    lenth_val=i2c_rx_buf[0];
+    lenth_val=lenth_val<<8;
+    lenth_val|=i2c_rx_buf[1];
+    delay(300); 
+    return lenth_val;
+}
+
+bool processWaterLeveling(void) {
+  bool result = false;
+
+  // Call a Read TOF10120 value
+  Serial.println("");
+  Serial.println("****");
+  Serial.println("Calling ReadDistance()...");
+  x_mm = ReadDistance();
+  Serial.print(x_mm);
+  Serial.println(" mm");
+
+  // You can convert millimeters to inches in one of two ways: divide the number of millimeters by 25.4, or multiply the number of millimeters by 0.0394
+  y_inches = x_mm * 0.0394;
+  Serial.print(y_inches); 
+  Serial.println(" inches");
+
+  result = true;
+
+  if( (y_inches > 10 ) && (relay_flag == 0))  {
+    digitalWrite(relay, LOW); 
+    relay_flag = 1; 
+  }
+  
+  if( (y_inches <= 5 ) && (relay_flag == 1))
+  {
+    digitalWrite(relay, HIGH); 
+    relay_flag = 0; 
+  }
+  
   return result;
 }
 
@@ -763,7 +859,6 @@ bool processReadSensor(void) {
     Serial.println("=>Call Notification information from cloud database: getNotificationInfoFromCloudDatabase()");
     getNotificationInfoFromCloudDatabase();
     
-    
     if(saveDataToCloudDatabase()) {
       Serial.println("Successfully Update data to the Cloud!!!");
       Serial.println("");
@@ -774,6 +869,7 @@ bool processReadSensor(void) {
       Serial.println("Update data to the Cloud Failured!!!");
     }  
 
+    result = true;
     
   } else {
     Serial.println("Read sensor Failured!!!");
